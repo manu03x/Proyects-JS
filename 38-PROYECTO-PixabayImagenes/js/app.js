@@ -1,5 +1,12 @@
 const result = document.querySelector('#resultado');
 const form = document.querySelector('#formulario');
+const pagerElement = document.querySelector('#paginacion');
+
+const recordsPerPage = 40;
+let totalPages;
+let pager;
+
+let currentPage = 1;
 
 
 window.onload = () => {
@@ -9,15 +16,13 @@ window.onload = () => {
 
 function formValidation(e) {
     e.preventDefault();
-
     const searchTerm = document.querySelector("#termino").value;
-
     if(searchTerm === '') {
         showAlert('Insert a search term');
         return;
     }
 
-    getImage(searchTerm);
+    getImage();
 
 }
 
@@ -43,19 +48,33 @@ function showAlert(message) {
     }
 }
 
-function getImage(searchTerm) {
+function getImage() {
+    const searchTerm = document.querySelector("#termino").value;
     const key = '37980427-d67be9e9449980bfe802941ad';
-    const url = `https://pixabay.com/api/?key=${key}&q=${searchTerm}`;
-
+    const url = `https://pixabay.com/api/?key=${key}&q=${searchTerm}&per_page=${recordsPerPage}&page=${currentPage}`;
+    const totalPagination = 
     fetch(url)
         .then(response => response.json())
-        .then(json => showImages(json.hits))
+        .then(json => {
+            console.log(json)
+            totalPages = pagesCalculator(json.totalHits)
+            showImages(json.hits)
+        })
+}
+
+function pagesCalculator(totalHits) {
+    return parseInt(Math.ceil(totalHits / recordsPerPage))
+}
+
+function *createPager(totalPages) {
+    for (let i = 1; i <= totalPages; i++) {
+        yield i;
+    }
 }
 
 function showImages(images) {
     cleanHTML(result)
     images.forEach(image => {
-        console.log(image)
         const { previewURL, likes, views, largeImageURL } = image;
 
         result.innerHTML += `
@@ -77,10 +96,37 @@ function showImages(images) {
         </div>
         `
     });
+
+    cleanHTML(pagerElement);
+    printPager();
 }
 
 function cleanHTML(element) {
     while(element.firstChild){
         element.removeChild(element.firstChild);
+    }
+}
+
+function printPager() {
+    pager = createPager(totalPages);
+
+    while(true) {
+        const {done , value} = pager.next();
+
+        if (done) return;
+
+        const button = document.createElement('A');
+
+        button.href = '#';
+        button.dataset.page = value;
+        button.textContent = value;
+        button.classList.add('bg-yellow-400', 'mb-4', 'px-4', 'py-1', 'mr-2', 'font-bold', 'rounded', 'next');
+
+        button.onclick = () => {
+            currentPage = value;
+
+            getImage()
+        }
+        pagerElement.appendChild(button);
     }
 }
