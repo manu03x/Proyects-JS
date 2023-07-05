@@ -4,6 +4,7 @@ let client = {
     order: []
 };
 
+let subtotal = 0;
 
 
 const saveClientButton = document.querySelector('#guardar-cliente');
@@ -131,15 +132,14 @@ function showDishes(dishes) {
 }
 
 function addDish(product) {
-
     let { order } = client;
-
     if (product.amount > 0) {
         const isDishRepeated = order.some( dish => dish.id === product.id );
 
         if (isDishRepeated) {
+            console.log('se repitio')
             const updatedOrder = order.map( dish => {
-                if(dish.amount === product.id) {
+                if(dish.id === product.id) {
                     dish.amount = product.amount;
                 }
 
@@ -148,6 +148,7 @@ function addDish(product) {
 
             // Update the array
             client.order = [...updatedOrder];
+
         } else {
             client.order = [...order, product];
         }
@@ -158,7 +159,11 @@ function addDish(product) {
         client.order = [...res];
     }
 
-    updateSummary()
+    
+
+    cleanHTML();
+    conditionalPrintOrder();
+
 }
 
 function updateSummary() {
@@ -166,7 +171,7 @@ function updateSummary() {
 
     const summary = document.createElement('DIV');
 
-    summary.classList.add('col-md-6');
+    summary.classList.add('col-md-6', 'py-5', 'px-3', 'shadow');
 
 
     // Table Info
@@ -189,10 +194,158 @@ function updateSummary() {
     hourSpan.textContent = client.hour
     hourSpan.classList.add('fw-normal')
 
-    hour.appendChild(hourSpan)
-    table.appendChild(tableSpan)
+    hour.appendChild(hourSpan);
+    table.appendChild(tableSpan);
 
-    content.appendChild(table)
-    content.appendChild(hour)
+    const heading = document.createElement('H3');
+    heading.textContent = 'Ordered Dishes';
+    heading.classList.add('my-4', 'text-center');
 
+    // Print dishes
+
+    const group = document.createElement('UL');
+    group.classList.add('list-group');
+
+    const { order } = client
+
+    order.forEach( dish => {
+        const {name, price, amount, id} = dish;
+
+        subtotal += price * amount
+
+        const list = document.createElement('LI');
+        list.classList.add('list-group-item');
+
+        const nameElement = document.createElement('H4');
+        nameElement.classList.add('my-4');
+        nameElement.textContent = name;
+
+        const amountElement = document.createElement('P');
+        amountElement.classList.add('fw-bold');
+        amountElement.textContent = 'Amount: ' + amount;
+
+        const priceElement = document.createElement('P');
+        priceElement.classList.add('fw-bold');
+        priceElement.textContent = 'Price: $' + price;
+
+        const deleteButton = document.createElement('BUTTON');
+        deleteButton.classList.add('btn', 'btn-danger');
+        deleteButton.textContent = 'Delete';
+
+        deleteButton.onclick = function() {
+            deleteDish(id);
+        }
+
+        //Add Elements to Li
+        list.appendChild(nameElement)
+        list.appendChild(amountElement)
+        list.appendChild(priceElement)
+        list.appendChild(deleteButton)
+
+        //Add to UL
+
+        group.appendChild(list);
+    })
+
+    const subtotalEl = document.createElement('P');
+    subtotalEl.classList.add('fw-bold', 'py-4');
+    subtotalEl.textContent = 'SubTotal: $' + subtotal
+
+
+    summary.appendChild(table)
+    summary.appendChild(hour)
+    summary.appendChild(heading)
+    summary.appendChild(group)
+    summary.appendChild(subtotalEl)
+
+    content.appendChild(summary)
+
+    createTipsForm();
+}
+
+function cleanHTML() {
+    const content = document.querySelector('#resumen .contenido');
+
+    while (content.firstChild) {
+        content.removeChild(content.firstChild)
+    }
+}
+
+function deleteDish(id) {
+
+    const { order } = client;
+
+    const filtered = order.filter( dish => dish.id !== id);
+
+
+
+    client.order = [...filtered];
+
+    console.log(client.order)
+
+    cleanHTML();
+    conditionalPrintOrder();
+
+    //Reset number input if product deleted
+
+    const dishInput = document.querySelector(`#product-${id}`)
+    dishInput.value = 0
+
+
+
+}
+
+function emptyOrder() {
+    const content = document.querySelector('#resumen .contenido');
+
+    const emptyOrderP = document.createElement('P');
+    emptyOrderP.classList.add('text-center');
+    emptyOrderP.textContent = 'Add items to your order';
+
+    content.appendChild(emptyOrderP);
+}
+
+function conditionalPrintOrder() {
+    if(client.order.length) {
+        updateSummary();
+    } else {
+        emptyOrder();
+    }
+}
+
+function createTipsForm() {
+    const content = document.querySelector('#resumen .contenido');
+
+    const tipsForm = document.createElement('DIV');
+    tipsForm.classList.add('col-md-4', 'form', 'shadow', 'mx-5');
+
+    const heading = document.createElement('H3');
+    heading.classList.add('my-4', 'text-center');
+    heading.textContent = 'Tips';
+
+    const tip10 = document.createElement('INPUT');
+    tip10.type = 'radio';
+    tip10.name = 'tip';
+    tip10.value = '10';
+
+    tip10.classList.add('form-check-input');
+
+    const tip10label = document.createElement('LABEL');
+    tip10label.textContent = '10%'
+    tip10label.classList.add('form-check-label');
+
+    tip10div = document.createElement('DIV');
+    tip10div.classList.add('form-check')
+
+    tip10div.appendChild(tip10)
+    tip10div.appendChild(tip10label)
+
+    const total =  document.createElement('H3')
+    total.textContent = 'Total: ' + subtotal + (subtotal) // PENDIENTE
+
+    tipsForm.appendChild(heading);
+    tipsForm.appendChild(tip10div);
+
+    content.appendChild(tipsForm);
+    content.appendChild(total);
 }
